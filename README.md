@@ -55,8 +55,12 @@
     
     3、记得赋予子账号AliyunSTSAssumeRoleAccess权限，否则无法调用AssumeRole接口
 
+    4、最后临时凭证获得的权限是角色的权限和传入的Policy的交集
+
+    * [STS实践](https://help.aliyun.com/document_detail/31935.html?spm=a2c4g.11186623.2.6.StbfA6)
     * [AssumeRole](https://help.aliyun.com/document_detail/28763.html?spm=a2c4g.11186623.6.682.CGHj83)
     * [使用STS报错](https://help.aliyun.com/knowledge_detail/39744.html?spm=a2c4g.11186623.6.739.t8kZIQ)
+    * [RAM Policy Editor](http://gosspublic.alicdn.com/ram-policy-editor/index.html?spm=a2c4g.11186623.2.17.Q3lh2B)
 
  * SDK
     
@@ -66,8 +70,30 @@
 
     3、OSS的API比较特殊，不能像上面那样扩展，就找了个第三方包（NetCorePal.Aliyun.OSS.SDK），用着还不错
 
+ * 缺陷
+
+    1、IMM目前还是个新产品，对html文档的转换支持很差。由于预览引擎不允许访问外部链接，所以导致hmtl中外部js、css、图片等均无法加载，样式失真严重
+
+    2、所以html文档，不建议走IMM服务，可以考虑直接交给浏览器去加载
+
+    3、另外对mht文件也不支持，如果有mht格式改后缀成doc文档的，也是会转换失败的
+
+ * 遇到的问题
+
+    1、最主要的就是这个问题，预览提示：“服务器异常，请联系管理员”
+
+     ![服务器异常](./Doc/服务器异常.jpg)
+     
+    可以从以下几个方面入手排查
+
+    * 转换失败：检查下转换后的oss文档，看是否完整；检查转成Task是否失败
+    * 路径错误：检查下预览url中的路径是否正确
+    * STSToken策略缺失：看下预览的响应有没有拒绝访问之类的错误，再检查token对应角色的策略设置
 
 #### 3、参考资料
 
  * [文档预览功能使用技巧](https://yq.aliyun.com/articles/609835?spm=a2c4e.11153940.blogrightarea610103.14.4c5c6c05pHSmIn)
+ * [OSS访问控制](https://help.aliyun.com/document_detail/31867.html?spm=a2c4g.11186623.4.6.H90iTA)
+ * [OSS权限问题排查](https://www.alibabacloud.com/help/zh/doc-detail/42777.htm)
+ * [Policy语法结构](https://help.aliyun.com/document_detail/28664.html?spm=a2c4g.11186623.2.1.ncUFzL)
 
