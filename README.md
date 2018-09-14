@@ -41,7 +41,7 @@
                 ...
     ```
 
-    4、最终预览Url格式：http(s)://{bucket}.oss-{region}.aliyuncs.com/[{prefix}/]preview/index.html?url=oss://{bucket}/[{prefix}/]{TgtUri}&accessKeyId=xxx&accessKeySecret=xxx&stsToken=UrlEncode(xxx)&region=oss-{region}&bucket={bucket}&cope=[0|1]&...
+    4、最终预览Url格式：https://preview.imm.aliyun.com/index.html?url=oss://{bucket}/[{prefix}/]{TgtUri}&accessKeyId=xxx&accessKeySecret=xxx&stsToken=UrlEncode(xxx)&region=oss-{region}&bucket={bucket}&cope=[0|1]&...
 
     5、注：已新增同步接口（ConvertOfficeFormat），但只支持转换时间在5s的任务。另外阿里云对预览引擎做了统一升级，详见：[https://help.aliyun.com/document_detail/74947.html?spm=a2c4g.11186623.2.3.31412902XQKVju](https://help.aliyun.com/document_detail/74947.html?spm=a2c4g.11186623.2.3.31412902XQKVju)
 
@@ -86,7 +86,7 @@
 
     2、所以html文档，不建议走IMM服务，可以考虑直接交给浏览器去加载
 
-    3、另外对mht文件也不支持，如果有mht格式改后缀成doc文档的，也是容易转换失败的
+    3、另外对mht文件也不支持，如果有mht转换成word文档的，也是容易预览失败的
 
  * 遇到的问题
 
