@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="aliyun-net-sdk-core" Version="1.1.12" />
+    <PackageReference Include="aliyun-net-sdk-imm" Version="1.0.3" />
     <PackageReference Include="Caching.CSRedis" Version="2.3.9" />
     <PackageReference Include="CSRedisCore" Version="2.3.9" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="2.1.1" />

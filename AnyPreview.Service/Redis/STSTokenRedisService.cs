@@ -1,4 +1,4 @@
-﻿using AnyPreview.Core.Aliyun;
+﻿using AnyPreview.Core.Settings;
 using Newtonsoft.Json;
 using System;
 using System.Threading.Tasks;

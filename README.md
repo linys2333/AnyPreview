@@ -29,7 +29,7 @@
 
     2、CreateOfficeConversionTask接口是异步的，每次调用返回状态都是Running或Failed，并没有文档中的Finished状态，只有在GetOfficeConversionTask接口中才能获取到完整的3个状态
 
-    3、前端预览引擎直接放到目标桶中，其文件权限均设为公共读，目录结构：
+    3、~~前端预览引擎直接放到目标桶中，其文件权限均设为公共读，目录结构：~~
     ```
     {bucket}/
     [├── {prefix}/]
@@ -43,7 +43,11 @@
 
     4、最终预览Url格式：http(s)://{bucket}.oss-{region}.aliyuncs.com/[{prefix}/]preview/index.html?url=oss://{bucket}/[{prefix}/]{TgtUri}&accessKeyId=xxx&accessKeySecret=xxx&stsToken=UrlEncode(xxx)&region=oss-{region}&bucket={bucket}&cope=[0|1]&...
 
-    * [CreateOfficeConversionTask](https://help.aliyun.com/document_detail/72044.html?spm=a2c4g.11186623.6.584.UQN3Ey)
+    5、注：已新增同步接口（ConvertOfficeFormat），但只支持转换时间在5s的任务。另外阿里云对预览引擎做了统一升级，详见：[https://help.aliyun.com/document_detail/74947.html?spm=a2c4g.11186623.2.3.31412902XQKVju](https://help.aliyun.com/document_detail/74947.html?spm=a2c4g.11186623.2.3.31412902XQKVju)
+
+    * [CreateOfficeConversionTask](https://help.aliyun.com/document_detail/86147.html?spm=a2c4g.11186623.6.587.366711a346Lp6e)
+    
+    * [ConvertOfficeFormat](https://help.aliyun.com/document_detail/72044.html?spm=a2c4g.11186623.6.584.UQN3Ey)
 
     * [前端预览引擎](https://imm-demo.oss-cn-shanghai.aliyuncs.com/formatconvert/preview/V2.0.0_20180427.zip?spm=a2c4e.11153940.blogcont589902.24.15407f2eE7kJHt&file=V2.0.0_20180427.zip)
 
@@ -64,11 +68,17 @@
 
  * SDK
     
-    1、官方源码中的文件夹名字就是nuget包名，可惜OSS和IMM目前都还不支持
+    1、官方源码中的文件夹名字就是nuget包名，~~可惜OSS和IMM目前都还不支持~~
 
     2、不过翻了github上的源码可以发现，调用阿里云API的核心类库（aliyun-net-sdk-core）其实都有了，公共类参数基本不用自定义，缺的就是部分产品API请求相关的对象。于是要实现IMM API请求，只需要基于官方基类稍稍扩展一下就OK了~
 
     3、OSS的API比较特殊，不能像上面那样扩展，就找了个第三方包（NetCorePal.Aliyun.OSS.SDK），用着还不错
+
+    4、注：OSS和IMM SDK官方已更新
+    
+    * [https://github.com/aliyun/aliyun-oss-csharp-sdk](https://github.com/aliyun/aliyun-oss-csharp-sdk)，坑爹的nuget包还是只到2.8版，不支持 .Net Core2，所以需要手动编译引用dll
+
+    * [https://github.com/aliyun/aliyun-openapi-net-sdk/tree/master/aliyun-net-sdk-imm](https://github.com/aliyun/aliyun-openapi-net-sdk/tree/master/aliyun-net-sdk-imm)
 
  * 缺陷
 
@@ -76,7 +86,7 @@
 
     2、所以html文档，不建议走IMM服务，可以考虑直接交给浏览器去加载
 
-    3、另外对mht文件也不支持，如果有mht格式改后缀成doc文档的，也是会转换失败的
+    3、另外对mht文件也不支持，如果有mht格式改后缀成doc文档的，也是容易转换失败的
 
  * 遇到的问题
 

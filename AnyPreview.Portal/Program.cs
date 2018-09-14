@@ -1,25 +1,53 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore;
+﻿using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using NLog.Web;
+using System;
+using System.IO;
 
-namespace AnyPreview
+namespace AnyPreview.Portal
 {
     public class Program
     {
         public static void Main(string[] args)
         {
-            BuildWebHost(args).Run();
+            var logger = NLogBuilder.ConfigureNLog("nlog.config").GetCurrentClassLogger();
+            try
+            {
+                logger.Info("程序初始化");
+                BuildWebHost(args).Run();
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "程序出异常");
+                throw;
+            }
+            finally
+            {
+                NLog.LogManager.Shutdown();
+            }
         }
 
-        public static IWebHost BuildWebHost(string[] args) =>
-            WebHost.CreateDefaultBuilder(args)
+        private static IWebHost BuildWebHost(string[] args)
+        {
+            var config = new ConfigurationBuilder().AddCommandLine(args).Build();
+
+            return WebHost.CreateDefaultBuilder(args)
+                .UseConfiguration(config)
+                .CaptureStartupErrors(true)
+                .UseSetting(WebHostDefaults.DetailedErrorsKey, "true")
+                .UseKestrel()
+                .UseContentRoot(Directory.GetCurrentDirectory())
+                .UseIISIntegration()
                 .UseStartup<Startup>()
+                .ConfigureLogging(logging =>
+                {
+                    logging.ClearProviders();
+                    logging.SetMinimumLevel(LogLevel.Trace);
+                })
+                .UseNLog()
                 .Build();
+        }
     }
 }

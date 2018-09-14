@@ -5,20 +5,20 @@ using System.Threading.Tasks;
 
 namespace AnyPreview.Service.Redis
 {
-    public class DocumentPreviewRedisService
+    public class PreviewRedisService
     {
-        public Task<bool> SetAsync(string cacheKey, DocumentConvertResultDto generateResult)
+        public Task<bool> SetAsync(string cacheKey, DocConvertResultDto generateResult)
         {
             var key = GetKey(cacheKey);
             var value = JsonConvert.SerializeObject(generateResult);
             return RedisHelper.SetAsync(key, value, TimeSpan.FromDays(7).Seconds);
         }
         
-        public async Task<DocumentConvertResultDto> GetAsync(string cacheKey)
+        public async Task<DocConvertResultDto> GetAsync(string cacheKey)
         {
             var key = GetKey(cacheKey);
             var value = await RedisHelper.GetAsync(key);
-            return string.IsNullOrEmpty(value) ? null : JsonConvert.DeserializeObject<DocumentConvertResultDto>(value);
+            return string.IsNullOrEmpty(value) ? null : JsonConvert.DeserializeObject<DocConvertResultDto>(value);
         }
 
         public async Task DeleteAsync(string cacheKey)

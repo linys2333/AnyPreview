@@ -1,5 +1,8 @@
-﻿using Aliyun.Acs.Core.Http;
+﻿using Aliyun.Acs.Core;
+using Aliyun.Acs.Core.Http;
+using Aliyun.Acs.imm.Model.V20170906;
 using AnyPreview.Core.Aliyun;
+using AnyPreview.Core.Settings;
 using AnyPreview.Service.Dtos;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Web.CodeGeneration.Utils;
@@ -13,7 +16,7 @@ namespace AnyPreview.Service.Aliyun
         private readonly IMMClient m_IMMClient;
         private readonly ILogger m_Logger;
         private readonly IMMSetting m_IMMSetting;
-
+        
         public IMMService(IMMClient immClient, ILogger logger, IMMSetting immSetting)
         {
             m_IMMClient = immClient;
@@ -21,7 +24,36 @@ namespace AnyPreview.Service.Aliyun
             m_IMMSetting = immSetting;
         }
 
-        public DocumentConvertResultDto Convert(OSSObjectDto ossObjectDto)
+        public DocConvertResultDto Convert(OSSObjectDto ossObjectDto)
+        {
+            Requires.NotNull(ossObjectDto, nameof(ossObjectDto));
+
+            var request = new ConvertOfficeFormatRequest
+            {
+                AcceptFormat = FormatType.JSON,
+                Project = m_IMMSetting.Project,
+                SrcUri = ossObjectDto.OSSPath,
+                SrcType = ossObjectDto.FileType,
+                TgtType = m_IMMSetting.ConvertType,
+                TgtUri = m_IMMSetting.GetTgtUri(ossObjectDto.IMMKey)
+            };
+
+            var task = Request(request);
+            if (task == null)
+            {
+                return null;
+            }
+
+            var result = new DocConvertResultDto(task);
+            if (result.Status == DocConvertStatus.Failed)
+            {
+                m_Logger.LogWarning($"文档转换失败：{JsonConvert.SerializeObject(task)}");
+            }
+
+            return result;
+        }
+
+        public DocConvertResultDto CreateConvertTask(OSSObjectDto ossObjectDto)
         {
             Requires.NotNull(ossObjectDto, nameof(ossObjectDto));
 
@@ -35,23 +67,22 @@ namespace AnyPreview.Service.Aliyun
                 TgtUri = m_IMMSetting.GetTgtUri(ossObjectDto.IMMKey)
             };
 
-            try
+            var task = Request(request);
+            if (task == null)
             {
-                var task = m_IMMClient.GetAcsResponse(request);
-                if (task.IsFail)
-                {
-                    m_Logger.LogError($"文档转换失败：{JsonConvert.SerializeObject(task)}");
-                }
-                return new DocumentConvertResultDto(task);
-            }
-            catch (Exception ex)
-            {
-                m_Logger.LogError(ex, "文档转换错误");
                 return null;
             }
+
+            var result = new DocConvertResultDto(task);
+            if (result.Status == DocConvertStatus.Failed)
+            {
+                m_Logger.LogWarning($"创建转换任务失败：{JsonConvert.SerializeObject(task)}");
+            }
+
+            return result;
         }
 
-        public DocumentConvertResultDto Query(string taskId)
+        public DocConvertResultDto QueryConvertTask(string taskId)
         {
             Requires.NotNullOrEmpty(taskId, nameof(taskId));
 
@@ -59,21 +90,33 @@ namespace AnyPreview.Service.Aliyun
             {
                 AcceptFormat = FormatType.JSON,
                 Project = m_IMMSetting.Project,
-                TaskId = taskId,
+                TaskId = taskId
             };
+            
+            var task = Request(request);
+            if (task == null)
+            {
+                return null;
+            }
 
+            var result = new DocConvertResultDto(task);
+            if (result.Status == DocConvertStatus.Failed)
+            {
+                m_Logger.LogWarning($"文档转换失败：{JsonConvert.SerializeObject(task)}");
+            }
+
+            return result;
+        }
+
+        private T Request<T>(AcsRequest<T> request) where T : AcsResponse
+        {
             try
             {
-                var task = m_IMMClient.GetAcsResponse(request);
-                if (task.IsFail)
-                {
-                    m_Logger.LogError($"文档转换失败：{JsonConvert.SerializeObject(task)}");
-                }
-                return new DocumentConvertResultDto(task);
+                return m_IMMClient.GetAcsResponse(request);
             }
             catch (Exception ex)
             {
-                m_Logger.LogError(ex, "查询文档转换任务错误");
+                m_Logger.LogError(ex, $"{request.ActionName}异常：{JsonConvert.SerializeObject(request)}");
                 return null;
             }
         }

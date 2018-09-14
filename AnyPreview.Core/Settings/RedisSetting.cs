@@ -1,4 +1,4 @@
-﻿namespace AnyPreview.Core.Redis
+﻿namespace AnyPreview.Core.Settings
 {
     public class RedisSetting
     {

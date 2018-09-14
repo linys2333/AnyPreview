@@ -17,7 +17,7 @@ namespace AnyPreview.Service.Dtos
         public OSSObjectDto(string ossPath)
         {
             OSSPath = ossPath;
-            HashPath = OSSPath.ToLower().HMACSHA1("");
+            HashPath = OSSPath.ToLower().HMACSHA1("salt");
             Bucket = Regex.Match(OSSPath, "(?<=^oss://)[^/]+?(?=/)").Value;
             FilePath = Regex.Match(OSSPath, "(?<=^oss://.+?/).+$").Value;
         }

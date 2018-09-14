@@ -1,4 +1,4 @@
-﻿namespace AnyPreview.Core.Aliyun
+﻿namespace AnyPreview.Core.Settings
 {
     public class IMMSetting
     {
@@ -11,9 +11,7 @@
         public string Project { get; set; }
 
         public string Bucket { get; set; }
-
-        public string PreviewPath { get; set; }
-
+        
         public string KeyPrefix { get; set; }
 
         public string RoleArn { get; set; }
@@ -28,7 +26,7 @@
 
         public string OSSEndpoint => $"oss-{Region}.aliyuncs.com";
 
-        public string PreviewIndexPath => $"http://{Bucket}.{OSSEndpoint}/{PreviewPath}/index.html";
+        public string PreviewIndexPath => $"https://preview.imm.aliyun.com/index.html";
 
         public string GetPrefix(string key) => $"{KeyPrefix}/{key}/{ConvertType}";
 

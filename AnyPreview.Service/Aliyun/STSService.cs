@@ -1,6 +1,7 @@
 ﻿using Aliyun.Acs.Core.Auth.Sts;
 using Aliyun.Acs.Core.Http;
 using AnyPreview.Core.Aliyun;
+using AnyPreview.Core.Settings;
 using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.Web.CodeGeneration.Utils;
 using System;

@@ -1,5 +1,6 @@
 ﻿using Aliyun.Acs.Core.Profile;
 using Aliyun.OSS;
+using AnyPreview.Core.Settings;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.VisualStudio.Web.CodeGeneration.Utils;
 

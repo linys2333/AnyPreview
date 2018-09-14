@@ -1,32 +1,35 @@
-﻿using AnyPreview.Core.Aliyun;
+﻿using AnyPreview.Core.Common;
+using AnyPreview.Core.Settings;
 using AnyPreview.Service.Aliyun;
-using AnyPreview.Service.Common;
 using AnyPreview.Service.Dtos;
 using AnyPreview.Service.Redis;
 using Microsoft.VisualStudio.Web.CodeGeneration.Utils;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
 using Credentials = Aliyun.Acs.Core.Auth.Sts.AssumeRoleResponse.AssumeRole_Credentials;
 
 namespace AnyPreview.Service
 {
-    public class DocumentPreviewManager
+    public class PreviewManager
     {
-        protected readonly IMMSetting m_IMMSetting;
-        protected readonly IMMService m_IMMService;
-        protected readonly OSSService m_OSSService;
-        protected readonly STSService m_STSService;
-        protected readonly DocumentPreviewRedisService m_DocumentPreviewRedisService;
-        protected readonly STSTokenRedisService m_STSTokenRedisService;
+        private readonly IMMSetting m_IMMSetting;
+        private readonly IMMService m_IMMService;
+        private readonly OSSService m_OSSService;
+        private readonly STSService m_STSService;
+        private readonly PreviewSetting m_PreviewSetting;
+        private readonly PreviewRedisService m_PreviewRedisService;
+        private readonly STSTokenRedisService m_STSTokenRedisService;
         
-        public DocumentPreviewManager
+        public PreviewManager
         (
             IMMSetting immSetting,
+            PreviewSetting previewSetting,
             IMMService immService,
             OSSService ossService,
             STSService stsService,
-            DocumentPreviewRedisService documentPreviewRedisService,
+            PreviewRedisService previewRedisService,
             STSTokenRedisService stsTokenRedisService
         )
         {
@@ -34,47 +37,41 @@ namespace AnyPreview.Service
             m_IMMService = immService;
             m_OSSService = ossService;
             m_STSService = stsService;
-            m_DocumentPreviewRedisService = documentPreviewRedisService;
+            m_PreviewSetting = previewSetting;
+            m_PreviewRedisService = previewRedisService;
             m_STSTokenRedisService = stsTokenRedisService;
         }
 
-        public virtual async Task<SimplyResult<DocumentConvertResultDto>> GenerateAsync(OSSObjectDto ossObjectDto, bool isRegenerate)
+        public virtual async Task<SimplyResult<DocConvertResultDto>> GenerateAsync(OSSObjectDto ossObjectDto, bool isRegenerate)
         {
             Requires.NotNull(ossObjectDto, nameof(ossObjectDto));
 
-            var generateResult = await m_DocumentPreviewRedisService.GetAsync(ossObjectDto.HashPath);
-
+            var generateResult = await m_PreviewRedisService.GetAsync(ossObjectDto.HashPath);
             if (generateResult == null)
             {
-                if (m_OSSService.IsExist(m_IMMSetting.Bucket, m_IMMSetting.GetDocumentMetaPath(ossObjectDto.IMMKey)))
-                {
-                    generateResult = new DocumentConvertResultDto
-                    {
-                        PreviewUrl = m_IMMSetting.GetTgtUri(ossObjectDto.IMMKey),
-                        Status = DocumentConvertStatus.Finished
-                    };
-                }
-                else
-                {
-                    isRegenerate = true;
-                }
+                isRegenerate = true;
             }
 
             if (isRegenerate)
             {
-                generateResult = m_IMMService.Convert(ossObjectDto);
+                generateResult = m_PreviewSetting.IsSync
+                    ? m_IMMService.Convert(ossObjectDto)
+                    : m_IMMService.CreateConvertTask(ossObjectDto);
             }
-            else if(generateResult.Status == DocumentConvertStatus.Running)
+
+            if (generateResult?.Status == DocConvertStatus.Running && m_PreviewSetting.PollingSpend > 0)
             {
-                generateResult = m_IMMService.Query(generateResult.TaskId);
+                generateResult = await QueryConvertTaskAsync(generateResult.TaskId);
             }
 
             switch (generateResult?.Status)
             {
-                case DocumentConvertStatus.Running:
-                case DocumentConvertStatus.Finished:
+                case DocConvertStatus.Running:
+                case DocConvertStatus.Finished:
+                    generateResult.PreviewUrl = m_IMMSetting.GetTgtUri(ossObjectDto.IMMKey);
                     generateResult.FileType = ossObjectDto.FileType;
-                    await m_DocumentPreviewRedisService.SetAsync(ossObjectDto.HashPath, generateResult);
+
+                    await m_PreviewRedisService.SetAsync(ossObjectDto.HashPath, generateResult);
 
                     var token = await GetTokenAsync(m_IMMSetting.Bucket,
                         $"{m_IMMSetting.GetPrefix(ossObjectDto.IMMKey)}/*", ossObjectDto.HashPath, isRegenerate);
@@ -82,8 +79,8 @@ namespace AnyPreview.Service
                     generateResult.PreviewUrl = GetPreviewUrl(generateResult.PreviewUrl, token);
                     return SimplyResult.Ok(generateResult);
                 default:
-                    await m_DocumentPreviewRedisService.DeleteAsync(ossObjectDto.HashPath);
-                    return SimplyResult.Fail<DocumentConvertResultDto>("GenerateFail", "文档转换失败");
+                    await m_PreviewRedisService.DeleteAsync(ossObjectDto.HashPath);
+                    return SimplyResult.Fail<DocConvertResultDto>("GenerateFail", "文档转换失败");
             }
         }
 
@@ -98,8 +95,8 @@ namespace AnyPreview.Service
                 return SimplyResult.Fail<string>("FileNoExist", "文档不存在");
             }
 
-            var fielType = DocumentPreviewConstants.ContentTypeDict
-                .GetValueOrDefault(ossObjectMetadata.ContentType.Split(";")[0].ToLower());
+            CommomConstants.ContentTypeDict
+                .TryGetValue(ossObjectMetadata.ContentType.Split(';')[0].ToLower(), out var fielType);
 
             return string.IsNullOrEmpty(fielType)
                 ? SimplyResult.Fail<string>("FileTypeError", "不支持的文档类型")
@@ -173,7 +170,25 @@ namespace AnyPreview.Service
                 $"region=oss-{m_IMMSetting.Region}",
                 $"bucket={m_IMMSetting.Bucket}"
             };
-            return $"{m_IMMSetting.PreviewIndexPath}?{string.Join('&', paramters)}";
+            return $"{m_IMMSetting.PreviewIndexPath}?{string.Join("&", paramters)}";
+        }
+
+        protected virtual Task<DocConvertResultDto> QueryConvertTaskAsync(string taskId)
+        {
+            var cancellToken = new CancellationTokenSource(m_PreviewSetting.PollingSpend * 1000);
+            return Task.Run(() =>
+            {
+                DocConvertResultDto generateResult = null;
+                while (!cancellToken.IsCancellationRequested)
+                {
+                    generateResult = m_IMMService.QueryConvertTask(taskId);
+                    if (generateResult != null && generateResult.Status != DocConvertStatus.Running)
+                    {
+                        return generateResult;
+                    }
+                }
+                return generateResult;
+            }, cancellToken.Token);
         }
     }
 }

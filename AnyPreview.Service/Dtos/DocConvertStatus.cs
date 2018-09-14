@@ -1,6 +1,6 @@
 ﻿namespace AnyPreview.Service.Dtos
 {
-    public enum DocumentConvertStatus
+    public enum DocConvertStatus
     {
         Running = 0,
         Finished = 1,
