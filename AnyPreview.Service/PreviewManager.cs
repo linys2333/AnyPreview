@@ -182,10 +182,13 @@ namespace AnyPreview.Service
                 while (!cancellToken.IsCancellationRequested)
                 {
                     generateResult = m_IMMService.QueryConvertTask(taskId);
-                    if (generateResult != null && generateResult.Status != DocConvertStatus.Running)
+                    if (generateResult?.Status != DocConvertStatus.Running)
                     {
                         return generateResult;
                     }
+
+                    // 官方建议1s
+                    Thread.Sleep(1000);
                 }
                 return generateResult;
             }, cancellToken.Token);
