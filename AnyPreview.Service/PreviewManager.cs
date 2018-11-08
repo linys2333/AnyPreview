@@ -47,7 +47,7 @@ namespace AnyPreview.Service
             Requires.NotNull(ossObjectDto, nameof(ossObjectDto));
 
             var generateResult = await m_PreviewRedisService.GetAsync(ossObjectDto.HashPath);
-            if (generateResult == null)
+            if ((generateResult?.ETag ?? string.Empty) != ossObjectDto.ETag)
             {
                 isRegenerate = true;
             }
@@ -68,7 +68,7 @@ namespace AnyPreview.Service
             {
                 case DocConvertStatus.Running:
                 case DocConvertStatus.Finished:
-                    generateResult.PreviewUrl = m_IMMSetting.GetTgtUri(ossObjectDto.IMMKey);
+                    generateResult.PreviewUrl = m_IMMSetting.GetPreviewUrl(ossObjectDto.IMMKey);
                     generateResult.FileType = ossObjectDto.FileType;
 
                     await m_PreviewRedisService.SetAsync(ossObjectDto.HashPath, generateResult);
@@ -76,31 +76,37 @@ namespace AnyPreview.Service
                     var token = await GetTokenAsync(m_IMMSetting.Bucket,
                         $"{m_IMMSetting.GetPrefix(ossObjectDto.IMMKey)}/*", ossObjectDto.HashPath, isRegenerate);
 
-                    generateResult.PreviewUrl = GetPreviewUrl(generateResult.PreviewUrl, token);
+                    generateResult.PreviewUrl = GetFullPreviewUrl(generateResult.PreviewUrl, token);
                     return SimplyResult.Ok(generateResult);
                 default:
                     await m_PreviewRedisService.DeleteAsync(ossObjectDto.HashPath);
                     return SimplyResult.Fail<DocConvertResultDto>("GenerateFail", "文档转换失败");
             }
         }
-
-        public virtual SimplyResult<string> GetFileType(string bucket, string filePath)
+        
+        public virtual SimplyResult<OSSObjectDto> GetOSSObject(string ossPath)
         {
-            Requires.NotNullOrEmpty(bucket, nameof(bucket));
-            Requires.NotNullOrEmpty(filePath, nameof(filePath));
+            Requires.NotNullOrEmpty(ossPath, nameof(ossPath));
 
-            var ossObjectMetadata = m_OSSService.GetObjectMetadata(bucket, filePath);
+            var ossObject = new OSSObjectDto(ossPath);
+
+            var ossObjectMetadata = m_OSSService.GetObjectMetadata(ossObject.Bucket, ossObject.FilePath);
             if (ossObjectMetadata == null)
             {
-                return SimplyResult.Fail<string>("FileNoExist", "文档不存在");
+                return SimplyResult.Fail<OSSObjectDto>("FileNoExist", "文档不存在");
             }
 
             CommomConstants.ContentTypeDict
-                .TryGetValue(ossObjectMetadata.ContentType.Split(';')[0].ToLower(), out var fielType);
+                .TryGetValue(ossObjectMetadata.ContentType.Split(';')[0].ToLower(), out var fileType);
+            if (string.IsNullOrEmpty(fileType))
+            {
+                return SimplyResult.Fail<OSSObjectDto>("FileTypeError", "不支持的文档类型");
+            }
 
-            return string.IsNullOrEmpty(fielType)
-                ? SimplyResult.Fail<string>("FileTypeError", "不支持的文档类型")
-                : SimplyResult.Ok(fielType);
+            ossObject.FileType = fileType;
+            ossObject.ETag = ossObjectMetadata.ETag;
+
+            return SimplyResult.Ok(ossObject);
         }
 
         protected virtual async Task<Credentials> GetTokenAsync(string bucket, string filePath, string cacheKey, bool isRefresh)
@@ -154,7 +160,7 @@ namespace AnyPreview.Service
 }}".Replace("'", "\"");
         }
 
-        protected virtual string GetPreviewUrl(string tgtLoc, Credentials token)
+        protected virtual string GetFullPreviewUrl(string tgtLoc, Credentials token)
         {
             if (string.IsNullOrEmpty(tgtLoc) || token == null)
             {
@@ -173,25 +179,31 @@ namespace AnyPreview.Service
             return $"{m_IMMSetting.PreviewIndexPath}?{string.Join("&", paramters)}";
         }
 
-        protected virtual Task<DocConvertResultDto> QueryConvertTaskAsync(string taskId)
+        protected virtual async Task<DocConvertResultDto> QueryConvertTaskAsync(string taskId)
         {
-            var cancellToken = new CancellationTokenSource(m_PreviewSetting.PollingSpend * 1000);
-            return Task.Run(() =>
+            using (var cancellTokenSource = new CancellationTokenSource(m_PreviewSetting.PollingSpend * 1000))
             {
-                DocConvertResultDto generateResult = null;
-                while (!cancellToken.IsCancellationRequested)
-                {
-                    generateResult = m_IMMService.QueryConvertTask(taskId);
-                    if (generateResult?.Status != DocConvertStatus.Running)
-                    {
-                        return generateResult;
-                    }
+                var cancellToken = cancellTokenSource.Token;
 
-                    // 官方建议1s
-                    Thread.Sleep(1000);
-                }
+                DocConvertResultDto generateResult = null;
+
+                await Task.Run(() =>
+                {
+                    while (!cancellToken.IsCancellationRequested)
+                    {
+                        generateResult = m_IMMService.QueryConvertTask(taskId);
+                        if (generateResult?.Status != DocConvertStatus.Running)
+                        {
+                            return;
+                        }
+
+                        // 官方建议1s
+                        Thread.Sleep(1000);
+                    }
+                }, cancellToken);
+
                 return generateResult;
-            }, cancellToken.Token);
+            }
         }
     }
 }

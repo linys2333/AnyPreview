@@ -32,6 +32,6 @@
 
         public string GetTgtUri(string key) => $"oss://{Bucket}/{GetPrefix(key)}";
 
-        public string GetDocumentMetaPath(string key) => $"{GetPrefix(key)}/doc/meta.json";
+        public string GetPreviewUrl(string key) => $"https://{Bucket}.oss-{Region}.aliyuncs.com/{GetPrefix(key)}";
     }
 }

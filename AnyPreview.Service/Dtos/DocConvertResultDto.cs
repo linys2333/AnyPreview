@@ -38,5 +38,7 @@ namespace AnyPreview.Service.Dtos
         public string RequestId { get; set; }
 
         public DocConvertStatus Status { get; set; }
+
+        public string ETag { get; set; }
     }
 }

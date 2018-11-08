@@ -30,6 +30,8 @@ namespace AnyPreview.Service.Dtos
 
         public string FilePath { get; set; }
 
+        public string ETag { get; set; }
+
         public string HashPath { get; }
 
         public string IMMKey

@@ -34,14 +34,13 @@ namespace AnyPreview.Portal.Controllers
                 return BadRequest(ModelState);
             }
 
-            var ossObjectDto = new OSSObjectDto(generateRequest.OSSPath);
-            
-            var fileType = m_PreviewManager.GetFileType(ossObjectDto.Bucket, ossObjectDto.FilePath);
-            if (!fileType.IsSuccess)
+            var getOSSObjectResult = m_PreviewManager.GetOSSObject(generateRequest.OSSPath);
+            if (!getOSSObjectResult.IsSuccess)
             {
-                return Json(fileType);
+                return Json(getOSSObjectResult);
             }
-            ossObjectDto.FileType = fileType.Data;
+
+            var ossObjectDto = getOSSObjectResult.Data;
 
             var result = await m_PreviewManager.GenerateAsync(ossObjectDto, generateRequest.IsRegenerate);
             return Json(result);
