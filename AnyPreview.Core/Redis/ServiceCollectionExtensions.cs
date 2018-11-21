@@ -9,7 +9,7 @@ namespace AnyPreview.Core.Redis
 {
     public static partial class ServiceCollectionExtensions
     {
-        public static IServiceCollection UseRedisService(this IServiceCollection services, RedisSetting setting)
+        public static IServiceCollection AddRedis(this IServiceCollection services, RedisSetting setting)
         {
             Requires.NotNull(setting, nameof(setting));
 

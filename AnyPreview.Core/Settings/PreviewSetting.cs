@@ -2,8 +2,10 @@
 {
     public class PreviewSetting
     {
-        public bool IsSync { get; set; }
+        public bool IsSyncConvert { get; set; }
 
-        public int PollingSpend { get; set; }
+        public int TaskPollingSpend { get; set; }
+
+        public int IMMRequestInterval { get; set; }
     }
 }

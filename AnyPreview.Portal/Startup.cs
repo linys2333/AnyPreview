@@ -23,32 +23,14 @@ namespace AnyPreview.Portal
     public class Startup
     {
         private readonly ILoggerFactory m_LoggerFactory;
+        private readonly IConfiguration m_Configuration;
 
-        public Startup(IHostingEnvironment env, ILoggerFactory loggerFactory)
+        public Startup(IConfiguration configuration, ILoggerFactory loggerFactory)
         {
             m_LoggerFactory = loggerFactory;
-            var environmentName = GetEnvironmentName(env.EnvironmentName);
-            var builder = new ConfigurationBuilder()
-                .SetBasePath(env.ContentRootPath)
-                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-                .AddJsonFile($"appsettings.{environmentName}.json", optional: true, reloadOnChange: true)
-                .AddEnvironmentVariables();
-
-            Configuration = builder.Build();
-
-            using (var sr = new StreamReader(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "ContentType.csv")))
-            {
-                using (var csv = new CsvReader(sr))
-                {
-                    while (csv.Read())
-                    {
-                        CommomConstants.ContentTypeDict.Add(csv.GetField(0).ToLower(), csv.GetField(1).ToLower());
-                    }
-                }
-            }
+            m_Configuration = configuration;
+            ConfigureOthers();
         }
-
-        public IConfiguration Configuration { get; }
 
         public IServiceProvider ConfigureServices(IServiceCollection services)
         {
@@ -57,7 +39,6 @@ namespace AnyPreview.Portal
                 options.Filters.Add(new WebApiExceptionFilter(m_LoggerFactory));
             });
             services.AddResponseCompression();
-            services.AddSingleton(Configuration);
             services.AddSingleton(m_LoggerFactory.CreateLogger("AnyPreview.Root"));
             services.AddSwaggerGen(c =>
             {
@@ -86,10 +67,7 @@ namespace AnyPreview.Portal
             {
                 app.UseDeveloperExceptionPage();
             }
-
-            loggerFactory.AddConsole(Configuration.GetSection("Logging"));
-            loggerFactory.AddDebug();
-
+            
             app.UseStaticFiles();
 
             app.UseResponseCompression();
@@ -109,25 +87,16 @@ namespace AnyPreview.Portal
                     template: "{controller=Home}/{action=Index}/{id?}");
             });
         }
-
-        private static string GetEnvironmentName(string environmentName)
-        {
-            var configuration = new ConfigurationBuilder()
-                .AddJsonFile("environment.json", optional: true)
-                .Build();
-
-            return configuration["EnvironmentName"] ?? environmentName ?? string.Empty;
-        }
-
+        
         private IServiceProvider ConfigureServiceProvider(IServiceCollection services)
         {
-            var immSetting = Configuration.GetSection("IMM").Get<IMMSetting>();
-            services.UseAliyunService(immSetting);
+            var immSetting = m_Configuration.GetSection("IMM").Get<IMMSetting>();
+            services.AddAliyun(immSetting);
 
-            var redisSetting = Configuration.GetSection("Redis").Get<RedisSetting>();
-            services.UseRedisService(redisSetting);
+            var redisSetting = m_Configuration.GetSection("Redis").Get<RedisSetting>();
+            services.AddRedis(redisSetting);
 
-            var dpSetting = Configuration.GetSection("Preview").Get<PreviewSetting>();
+            var dpSetting = m_Configuration.GetSection("Preview").Get<PreviewSetting>();
             services.AddSingleton(dpSetting);
 
             var builder = new ContainerBuilder();
@@ -141,6 +110,20 @@ namespace AnyPreview.Portal
                 .AsSelf();
 
             return new AutofacServiceProvider(builder.Build());
+        }
+
+        private void ConfigureOthers()
+        {
+            using (var sr = new StreamReader(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "ContentType.csv")))
+            {
+                using (var csv = new CsvReader(sr))
+                {
+                    while (csv.Read())
+                    {
+                        CommomConstants.ContentTypeDict.Add(csv.GetField(0).ToLower(), csv.GetField(1).ToLower());
+                    }
+                }
+            }
         }
     }
 }

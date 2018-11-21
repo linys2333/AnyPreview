@@ -1,10 +1,8 @@
 ﻿using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using NLog.Web;
 using System;
-using System.IO;
 
 namespace AnyPreview.Portal
 {
@@ -31,23 +29,26 @@ namespace AnyPreview.Portal
 
         private static IWebHost BuildWebHost(string[] args)
         {
-            var config = new ConfigurationBuilder().AddCommandLine(args).Build();
-
             return WebHost.CreateDefaultBuilder(args)
-                .UseConfiguration(config)
                 .CaptureStartupErrors(true)
                 .UseSetting(WebHostDefaults.DetailedErrorsKey, "true")
-                .UseKestrel()
-                .UseContentRoot(Directory.GetCurrentDirectory())
-                .UseIISIntegration()
-                .UseStartup<Startup>()
-                .ConfigureLogging(logging =>
+                .ConfigureAppConfiguration((hostingContext, config) =>
                 {
-                    logging.ClearProviders();
-                    logging.SetMinimumLevel(LogLevel.Trace);
+                    config.Sources.Clear();
+                    config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                        .AddJsonFile($"appsettings.{GetEnvironmentName()}.json", optional: true, reloadOnChange: true);
                 })
+                .UseStartup<Startup>()
                 .UseNLog()
                 .Build();
+        }
+
+        private static string GetEnvironmentName()
+        {
+            var configuration = new ConfigurationBuilder()
+                .AddJsonFile("environment.json", optional: true)
+                .Build();
+            return configuration["EnvironmentName"] ?? string.Empty;
         }
     }
 }

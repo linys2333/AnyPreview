@@ -54,12 +54,12 @@ namespace AnyPreview.Service
 
             if (isRegenerate)
             {
-                generateResult = m_PreviewSetting.IsSync
+                generateResult = m_PreviewSetting.IsSyncConvert
                     ? m_IMMService.Convert(ossObjectDto)
                     : m_IMMService.CreateConvertTask(ossObjectDto);
             }
 
-            if (generateResult?.Status == DocConvertStatus.Running && m_PreviewSetting.PollingSpend > 0)
+            if (generateResult?.Status == DocConvertStatus.Running && m_PreviewSetting.TaskPollingSpend > 0)
             {
                 generateResult = await QueryConvertTaskAsync(generateResult.TaskId);
             }
@@ -181,7 +181,7 @@ namespace AnyPreview.Service
 
         protected virtual async Task<DocConvertResultDto> QueryConvertTaskAsync(string taskId)
         {
-            using (var cancellTokenSource = new CancellationTokenSource(m_PreviewSetting.PollingSpend * 1000))
+            using (var cancellTokenSource = new CancellationTokenSource(m_PreviewSetting.TaskPollingSpend))
             {
                 var cancellToken = cancellTokenSource.Token;
 
@@ -191,14 +191,14 @@ namespace AnyPreview.Service
                 {
                     while (!cancellToken.IsCancellationRequested)
                     {
+                        // 官方建议
+                        Thread.Sleep(m_PreviewSetting.IMMRequestInterval);
+
                         generateResult = m_IMMService.QueryConvertTask(taskId);
                         if (generateResult?.Status != DocConvertStatus.Running)
                         {
                             return;
                         }
-
-                        // 官方建议1s
-                        Thread.Sleep(1000);
                     }
                 }, cancellToken);
 

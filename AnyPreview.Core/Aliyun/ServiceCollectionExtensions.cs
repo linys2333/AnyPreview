@@ -8,7 +8,7 @@ namespace AnyPreview.Core.Aliyun
 {
     public static partial class ServiceCollectionExtensions
     {
-        public static IServiceCollection UseAliyunService(this IServiceCollection services, IMMSetting setting)
+        public static IServiceCollection AddAliyun(this IServiceCollection services, IMMSetting setting)
         {
             Requires.NotNull(setting, nameof(setting));
             
