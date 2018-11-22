@@ -5,11 +5,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="aliyun-net-sdk-core" Version="1.1.12" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="2.1.1" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Utils" Version="2.1.1" />
     <PackageReference Include="NETCore.Encrypt" Version="2.0.7" />
-    <PackageReference Include="NetCorePal.Aliyun.OSS.SDK" Version="2.8.0.2" />
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
   </ItemGroup>
 

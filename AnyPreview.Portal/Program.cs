@@ -14,7 +14,7 @@ namespace AnyPreview.Portal
             try
             {
                 logger.Info("程序初始化");
-                BuildWebHost(args).Run();
+                CreateWebHostBuilder(args).Build().Run();
             }
             catch (Exception ex)
             {
@@ -27,7 +27,7 @@ namespace AnyPreview.Portal
             }
         }
 
-        private static IWebHost BuildWebHost(string[] args)
+        private static IWebHostBuilder CreateWebHostBuilder(string[] args)
         {
             return WebHost.CreateDefaultBuilder(args)
                 .CaptureStartupErrors(true)
@@ -39,8 +39,7 @@ namespace AnyPreview.Portal
                         .AddJsonFile($"appsettings.{GetEnvironmentName()}.json", optional: true, reloadOnChange: true);
                 })
                 .UseStartup<Startup>()
-                .UseNLog()
-                .Build();
+                .UseNLog();
         }
 
         private static string GetEnvironmentName()

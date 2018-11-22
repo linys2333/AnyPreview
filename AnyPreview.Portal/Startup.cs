@@ -61,7 +61,7 @@ namespace AnyPreview.Portal
             return ConfigureServiceProvider(services);
         }
 
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
             if (env.IsDevelopment())
             {
