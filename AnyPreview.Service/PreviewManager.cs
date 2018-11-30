@@ -5,9 +5,11 @@ using AnyPreview.Service.Dtos;
 using AnyPreview.Service.Redis;
 using Microsoft.VisualStudio.Web.CodeGeneration.Utils;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
+using static AnyPreview.Core.Common.CommomConstants;
 using Credentials = Aliyun.Acs.Core.Auth.Sts.AssumeRoleResponse.AssumeRole_Credentials;
 
 namespace AnyPreview.Service
@@ -96,11 +98,20 @@ namespace AnyPreview.Service
                 return SimplyResult.Fail<OSSObjectDto>("FileNoExist", "文档不存在");
             }
 
-            CommomConstants.ContentTypeDict
-                .TryGetValue(ossObjectMetadata.ContentType.Split(';')[0].ToLower(), out var fileType);
+            var fileType = string.Empty;
+            if (!string.IsNullOrEmpty(ossObjectMetadata.ContentDisposition))
+            {
+                var fileName = Regexs.ContentDispositionFileNameRegex.Match(ossObjectMetadata.ContentDisposition).Value;
+                fileType = Path.GetExtension(fileName).TrimStart('.');
+            }
+
             if (string.IsNullOrEmpty(fileType))
             {
-                return SimplyResult.Fail<OSSObjectDto>("FileTypeError", "不支持的文档类型");
+                ContentTypeDict.TryGetValue(ossObjectMetadata.ContentType.Split(';')[0].ToLower(), out fileType);
+                if (string.IsNullOrEmpty(fileType))
+                {
+                    fileType = "doc";
+                }
             }
 
             ossObject.FileType = fileType;
@@ -183,24 +194,19 @@ namespace AnyPreview.Service
         {
             using (var cancellTokenSource = new CancellationTokenSource(m_PreviewSetting.TaskPollingSpend))
             {
-                var cancellToken = cancellTokenSource.Token;
-
                 DocConvertResultDto generateResult = null;
 
-                await Task.Run(() =>
+                while (!cancellTokenSource.IsCancellationRequested)
                 {
-                    while (!cancellToken.IsCancellationRequested)
-                    {
-                        // 官方建议
-                        Thread.Sleep(m_PreviewSetting.IMMRequestInterval);
+                    // 官方建议
+                    Thread.Sleep(m_PreviewSetting.IMMRequestInterval);
 
-                        generateResult = m_IMMService.QueryConvertTask(taskId);
-                        if (generateResult?.Status != DocConvertStatus.Running)
-                        {
-                            return;
-                        }
+                    generateResult = m_IMMService.QueryConvertTask(taskId);
+                    if (generateResult?.Status != DocConvertStatus.Running)
+                    {
+                        break;
                     }
-                }, cancellToken);
+                }
 
                 return generateResult;
             }
