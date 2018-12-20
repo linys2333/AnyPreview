@@ -17,7 +17,7 @@ namespace AnyPreview.Portal.Web
         private static readonly JsonSerializerSettings _JsonSerializerSettings = new JsonSerializerSettings
         {
             ContractResolver = new CamelCasePropertyNamesContractResolver(),
-            DateFormatString = CommomConstants.DateTimeFormatter.HyphenLongDateTime
+            DateFormatString = CommonConstants.DateTimeFormatter.HyphenLongDateTime
         };
 
         protected new JsonResult BadRequest(ModelStateDictionary modelState)

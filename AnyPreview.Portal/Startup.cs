@@ -1,5 +1,4 @@
 ﻿using AnyPreview.Core.Aliyun;
-using AnyPreview.Core.Common;
 using AnyPreview.Core.Redis;
 using AnyPreview.Core.Settings;
 using AnyPreview.Portal.Web;
@@ -17,6 +16,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using static AnyPreview.Core.Common.CommonConstants.Resources;
 
 namespace AnyPreview.Portal
 {
@@ -120,7 +120,22 @@ namespace AnyPreview.Portal
                 {
                     while (csv.Read())
                     {
-                        CommomConstants.ContentTypeDict.Add(csv.GetField(0).ToLower(), csv.GetField(1).ToLower());
+                        ContentTypeDict.Add(csv.GetField(0).ToLower(), csv.GetField(1).ToLower());
+                    }
+                }
+            }
+
+            using (var sr = new StreamReader(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources", "IMMFileType.csv")))
+            {
+                using (var csv = new CsvReader(sr))
+                {
+                    while (csv.Read())
+                    {
+                        if (!csv.TryGetField(1, out string value))
+                        {
+                            value = csv.GetField(0);
+                        }
+                        IMMFileTypeDict.Add(csv.GetField(0).ToLower(), value.ToLower());
                     }
                 }
             }

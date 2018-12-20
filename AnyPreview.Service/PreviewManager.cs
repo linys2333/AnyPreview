@@ -9,7 +9,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web;
-using static AnyPreview.Core.Common.CommomConstants;
+using static AnyPreview.Core.Common.CommonConstants;
 using Credentials = Aliyun.Acs.Core.Auth.Sts.AssumeRoleResponse.AssumeRole_Credentials;
 
 namespace AnyPreview.Service
@@ -98,23 +98,24 @@ namespace AnyPreview.Service
                 return SimplyResult.Fail<OSSObjectDto>("FileNoExist", "文档不存在");
             }
 
-            var fileType = string.Empty;
+            var ossFileType = string.Empty;
             if (!string.IsNullOrEmpty(ossObjectMetadata.ContentDisposition))
             {
                 var fileName = Regexs.ContentDispositionFileNameRegex.Match(ossObjectMetadata.ContentDisposition).Value;
-                fileType = Path.GetExtension(fileName).TrimStart('.');
+                ossFileType = Path.GetExtension(fileName).TrimStart('.');
             }
 
-            if (string.IsNullOrEmpty(fileType))
+            if (string.IsNullOrEmpty(ossFileType))
             {
-                ContentTypeDict.TryGetValue(ossObjectMetadata.ContentType.Split(';')[0].ToLower(), out fileType);
-                if (string.IsNullOrEmpty(fileType))
-                {
-                    fileType = "doc";
-                }
+                Resources.ContentTypeDict.TryGetValue(ossObjectMetadata.ContentType.Split(';')[0].ToLower(), out ossFileType);
             }
 
-            ossObject.FileType = fileType;
+            if (string.IsNullOrEmpty(ossFileType) || !Resources.IMMFileTypeDict.TryGetValue(ossFileType, out var immFileType))
+            {
+                return SimplyResult.Fail<OSSObjectDto>("UnsupportedFile", "不支持的文件类型");
+            }
+
+            ossObject.FileType = immFileType;
             ossObject.ETag = ossObjectMetadata.ETag;
 
             return SimplyResult.Ok(ossObject);
