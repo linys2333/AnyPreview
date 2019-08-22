@@ -12,13 +12,16 @@ namespace AnyPreview.Portal.Controllers
     public class PreviewController : WebApiController
     {
         private readonly PreviewManager m_PreviewManager;
+        private readonly HtmlPreviewManager m_HtmlPreviewManager;
 
         public PreviewController
         (
-            PreviewManager previewManager
+            PreviewManager previewManager,
+            HtmlPreviewManager htmlPreviewManager
         )
         {
             m_PreviewManager = previewManager;
+            m_HtmlPreviewManager = htmlPreviewManager;
         }
 
         /// <summary>
@@ -41,8 +44,10 @@ namespace AnyPreview.Portal.Controllers
             }
 
             var ossObjectDto = getOSSObjectResult.Data;
-
-            var result = await m_PreviewManager.GenerateAsync(ossObjectDto, generateRequest.IsRegenerate);
+            var result = ossObjectDto.IsHtml
+                ? await m_HtmlPreviewManager.GenerateAsync(ossObjectDto, generateRequest.IsRegenerate)
+                : await m_PreviewManager.GenerateAsync(ossObjectDto, generateRequest.IsRegenerate);
+            
             return Json(result);
         }
     }

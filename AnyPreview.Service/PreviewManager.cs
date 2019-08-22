@@ -16,13 +16,13 @@ namespace AnyPreview.Service
 {
     public class PreviewManager
     {
-        private readonly IMMSetting m_IMMSetting;
-        private readonly IMMService m_IMMService;
-        private readonly OSSService m_OSSService;
-        private readonly STSService m_STSService;
-        private readonly PreviewSetting m_PreviewSetting;
-        private readonly PreviewRedisService m_PreviewRedisService;
-        private readonly STSTokenRedisService m_STSTokenRedisService;
+        protected readonly IMMSetting m_IMMSetting;
+        protected readonly IMMService m_IMMService;
+        protected readonly OSSService m_OSSService;
+        protected readonly STSService m_STSService;
+        protected readonly PreviewSetting m_PreviewSetting;
+        protected readonly PreviewRedisService m_PreviewRedisService;
+        protected readonly STSTokenRedisService m_STSTokenRedisService;
         
         public PreviewManager
         (

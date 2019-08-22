@@ -37,7 +37,8 @@ namespace AnyPreview.Service.Aliyun
             }
         }
 
-        public string GetPreviewUrl(string bucket, string filePath, int expiry)
+
+        public string GetPreviewUrl(string bucket, string filePath, int expiry, string contentType = null)
         {
             Requires.NotNullOrEmpty(bucket, nameof(bucket));
             Requires.NotNullOrEmpty(filePath, nameof(filePath));
@@ -52,6 +53,12 @@ namespace AnyPreview.Service.Aliyun
                         ContentDisposition = "inline"
                     }
                 };
+
+                if (!string.IsNullOrEmpty(contentType))
+                {
+                    req.ResponseHeaders.ContentType = contentType;
+                }
+
                 return m_OSSClient.GeneratePresignedUri(req).AbsoluteUri;
             }
             catch (Exception ex)
